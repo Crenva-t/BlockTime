@@ -10,6 +10,7 @@ For LIF project
 
 
 用于 LIF 课程项目
+
 本app为LIF Group B68的小组的项目，服务于我们的选题：Developing Healthy Sleep Habits in College Students.
 
 当代大学生的作息不规律，睡眠的时长与质量难以保证，对身心健康有较大影响。而经过调查与分析，我们发现其睡眠时间拖后的主要原因是一天的时间分配不周，以及不好的作息习惯。
