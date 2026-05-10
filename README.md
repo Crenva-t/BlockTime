@@ -1,3 +1,15 @@
+如要下载软件包，请点击V6.0_sign.apk!
+
+To download the software package, please click on V6.0_sign.apk!
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 For the LIF Project
 
 This application is a project completed by Group B68 of the LIF course, corresponding to our research topic: Developing Healthy Sleep Habits in College Students.
