@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>LIF B68 Project</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f0f4f8; }
+    #app { width: 100%; height: 100%; display: flex; flex-direction: column; background: #FFFFFF; position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+
+    .date-nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 100%); flex-shrink: 0; min-height: 56px; position: relative; }
+    .date-nav-left { display: flex; align-items: center; gap: 12px; }
+    .date-nav-right { display: flex; align-items: center; gap: 4px; height: 36px; }
+    .date-nav button.nav-btn { width: 10px; border: none; background: transparent; color: #FBD2D6; border-radius: 4px; font-size: 24px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .date-nav button.nav-btn:hover { color: #FA7298; }
+    .date-nav button.nav-btn:active { transform: scale(0.95); }
+    .date-nav span { font-size: 15px; font-weight: 900; color: #FA7298; }
+    #currentDateDisplay .date-left { font-size: 24px; font-weight: 600; color: #FA7298; }
+    #currentDateDisplay .date-right { display: flex; flex-direction: column; align-items: flex-start; }
+    #currentDateDisplay .date-year, #currentDateDisplay .date-week { font-size: 12px; color: #FBD2D6; }
+    #currentDateDisplay { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; min-width: 0; }
+    .date-left { white-space: nowrap; font-size: 24px; font-weight: 600; color: #0c4a6e; }
+    .date-right { display: flex; flex-direction: column; align-items: flex-start; white-space: nowrap; }
+    .date-year, .date-week { font-size: 12px; color: #9ca3af; }
+
+    .undo-btn { width: 36px; height: 36px; border: none; background: transparent; color: #FA7298; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; opacity: 0.5; transition: opacity 0.2s; }
+    .undo-btn.active { opacity: 1; }
+    .undo-btn:active { background: rgba(0, 0, 0, 0.1); }
+    .lang-btn { width: 36px; height: 36px; border: none; background: transparent; color: #FA7298; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s; }
+    .lang-btn:active { background: rgba(0, 0, 0, 0.1); }
+    .menu-btn { width: 36px; height: 36px; border: none; background: transparent; color: #FA7298; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; line-height: 1; }
+    .menu-btn:active { background: rgba(0, 0, 0, 0.1); }
+    #addPlanBtn { width: 36px; height: 36px; border: none; background: none; color: #FA7298; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0; font-weight: 300; }
+    #addPlanBtn:active { transform: scale(0.9); color: #e55d80; }
+    #plansTitle { font-size: 20px; font-weight: 700; color: #FA7298; white-space: nowrap; display: none; letter-spacing: 0.5px; }
+
+    .dropdown-menu { position: absolute; top: 56px; right: 12px; background: white; border-radius: 4px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); min-width: 180px; z-index: 200; overflow: hidden; }
+    .dropdown-menu.hidden { display: none; }
+    .dropdown-item { width: 100%; padding: 14px 16px; border: none; background: transparent; font-size: 14px; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #374151; }
+    .dropdown-item:active { background: #f3f4f6; }
+    .dropdown-item.danger { color: #dc2626; }
+    .dropdown-divider { height: 1px; background: #e5e7eb; }
+    .dropdown-submenu { padding: 8px 16px; font-size: 12px; color: #9ca3af; }
+    .block-size-options { display: flex; gap: 8px; padding: 8px 16px 12px; }
+    .block-size-btn { flex: 1; padding: 8px 0; border: 2px solid #e5e7eb; background: white; border-radius: 4px; font-size: 14px; color: #374151; cursor: pointer; }
+    .block-size-btn.active { border-color: #FA7298; background: #FBD2D6; color: #FA7298; font-weight: 600; }
+    .block-size-btn:active { transform: scale(0.95); }
+
+    .page-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 56px; }
+
+    .timeline-page { flex: 1; display: flex; padding: 10px; gap: 0; background: #FFFFFF; overflow: hidden; position: relative; }
+    .timeline-page.hidden, .stats-page.hidden, .plans-page.hidden, .about-page.hidden { display: none; }
+
+    .sidebar-wrapper { display: flex; align-items: stretch; flex-shrink: 0; position: relative; }
+    .category-sidebar { width: 80px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding-right: 2px; transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease; }
+    .category-sidebar.collapsed { width: 0; opacity: 0; padding: 0; overflow: hidden; }
+    .category-sidebar::-webkit-scrollbar { width: 2px; }
+    .category-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .sidebar-toggle { width: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: transparent; border: none; color: #FBD2D6; font-size: 16px; transition: color 0.2s; flex-shrink: 0; padding: 0; margin: 0 4px; }
+    .sidebar-toggle:active { color: #FA7298; }
+    .sidebar-toggle svg { transition: transform 0.3s ease; }
+    .sidebar-toggle.collapsed svg { transform: rotate(180deg); }
+
+    .cat-item { width: 76px; height: 38px; min-height: 38px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 500; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; user-select: none; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); -webkit-touch-callout: none; position: relative; flex-shrink: 0; }
+    .cat-item::before { content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; }
+    .cat-item:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+    .cat-item.add-btn { background: white; color: #FA7298; border: 2px dashed #FBD2D6; font-size: 24px; }
+    .cat-item.add-btn.disabled { opacity: 0.5; pointer-events: none; }
+
+    .timeline-container { flex: 1; background: white; border-radius: 4px; padding: 8px; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+    .timeline-container::-webkit-scrollbar { width: 3px; }
+    .timeline-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .time-row { display: flex; align-items: center; margin-bottom: 3px; }
+    .time-label { width: 44px; font-size: 11px; color: #FBD2D6; text-align: right; padding-right: 8px; flex-shrink: 0; }
+    .slots-container { display: flex; gap: 3px; flex: 1; }
+    .slot { flex: 1; height: 32px; background: #f3f4f6; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); min-width: 0; user-select: none; -webkit-user-select: none; }
+    .slot:active { transform: scale(0.95); }
+    .slot.highlight { border-color: #FA7298; box-shadow: 0 0 0 2px #FBD2D6; }
+    .slot.empty { color: #d1d5db; }
+
+    .color-custom-1 { background: #F16D7A; }
+    .color-custom-2 { background: #FD823F; }
+    .color-custom-3 { background: #E1BF1F; }
+    .color-custom-4 { background: #A4B229; }
+    .color-custom-5 { background: #24AEB8; }
+    .color-custom-6 { background: #1E88C6; }
+    .color-custom-7 { background: #6C70DB; }
+    .color-custom-8 { background: #9B85CD; }
+    .color-custom-9 { background: #BC70EC; }
+    .color-custom-10 { background: #DD65AF; }
+    .color-custom-11 { background: #879ACE; }
+    .color-custom-12 { background: #5E7B81; }
+
+    /* ===== Stats Page (from V5.2.7) ===== */
+    .stats-page { flex: 1; padding: 16px; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+    .stats-header { text-align: center; margin-bottom: 12px; }
+    .stats-header h2 { font-size: 18px; color: #FA7298; font-weight: 600; margin-bottom: 4px; }
+    .stats-header p { font-size: 12px; color: #9ca3af; }
+    .advice-card { background: white; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); border: 1px solid #fce4ec; }
+    .advice-card .advice-btn-row { display: flex; align-items: center; gap: 10px; }
+    .action-btn { background: linear-gradient(135deg, #FA7298 0%, #6C70DB 100%); border: none; border-radius: 8px; padding: 14px 16px; color: white; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s; width: 100%; }
+    .action-btn:active { transform: scale(0.98); opacity: 0.9; }
+    .advice-result-area { margin-top: 14px; display: none; animation: adviceFadeIn 0.4s ease; }
+    .advice-result-area.visible { display: block; }
+    @keyframes adviceFadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .advice-no-data { text-align: center; padding: 20px 12px; color: #9ca3af; font-size: 14px; font-style: italic; }
+    .advice-point { padding: 12px 14px; margin-bottom: 10px; border-radius: 8px; background: #fdf2f5; border-left: 4px solid #FA7298; font-size: 13px; color: #374151; line-height: 1.7; }
+    .advice-point:last-child { margin-bottom: 0; }
+    .advice-point .point-label { font-weight: 700; color: #FA7298; margin-right: 4px; font-size: 13px; }
+    .advice-point .point-highlight { background: #FBD2D6; padding: 2px 6px; border-radius: 3px; font-weight: 600; color: #c0392b; white-space: nowrap; }
+    .advice-point .point-good { color: #27ae60; font-weight: 600; }
+    .advice-point .point-warn { color: #e67e22; font-weight: 600; }
+    .advice-point .point-ref { font-size: 11px; color: #9ca3af; margin-top: 4px; font-style: italic; }
+    .advice-point.advice-encourage { border-left-color: #27ae60; background: #eafaf1; }
+    .advice-point.advice-warn { border-left-color: #e67e22; background: #fef9e7; }
+    .advice-point.advice-alert { border-left-color: #e74c3c; background: #fdedec; }
+    .stats-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); border: 1px solid #fce4ec; }
+    .stats-card h3 { font-size: 15px; color: #374151; margin-bottom: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .stats-card h3::before { content: ''; width: 4px; height: 16px; background: #FA7298; border-radius: 2px; }
+    .chart-container-wide { width: 100%; height: 200px; padding: 10px 0; }
+    .chart-container { width: 100%; max-width: 220px; margin: 0 auto; padding: 10px 0; }
+    .stats-list { display: flex; flex-direction: column; gap: 10px; }
+    .stats-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border-radius: 8px; transition: transform 0.2s; }
+    .stats-item:active { transform: scale(0.98); }
+    .stats-color { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+    .stats-name { flex: 1; font-size: 14px; color: #374151; font-weight: 500; }
+    .stats-time { font-size: 14px; color: #FA7298; font-weight: 600; }
+    .stats-percent { font-size: 12px; color: #9ca3af; min-width: 40px; text-align: right; }
+    .no-data { text-align: center; color: #9ca3af; padding: 40px 20px; font-size: 14px; }
+
+    /* ===== About Page (from V5.2.7) ===== */
+    .about-page { flex: 1; padding: 16px; background: #f5f7fa; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; align-items: flex-start; justify-content: center; }
+
+    /* ===== Plans Page (from Mini5.3.7) ===== */
+    .plans-page { flex: 1; padding: 16px; background: #FFFFFF; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+    .plans-container { width: 100%; max-width: 500px; margin: 0 auto; }
+    .plans-list { display: flex; flex-direction: column; gap: 14px; padding-bottom: 20px; }
+    .plan-card { background: white; border-radius: 12px; padding: 18px 14px; position: relative; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); cursor: pointer; transition: all 0.2s ease; min-height: 70px; display: flex; align-items: center; word-break: break-word; animation: planCardIn 0.35s ease; border-left: none; }
+    @keyframes planCardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .plan-card:active { transform: scale(0.97); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
+    .plan-card-name { font-size: 15px; font-weight: 600; color: #fff; line-height: 1.4; flex: 1; padding-right: 26px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .plan-card-streak { position: absolute; bottom: 6px; right: 14px; font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+    .plans-empty { text-align: center; padding: 60px 20px; color: #c4b5b9; }
+    .plans-empty-text { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .plans-empty-hint { font-size: 13px; color: #d1c4c8; }
+
+    .copy-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .copy-toast.show { opacity: 1; }
+
+    .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: #FBD2D6; border-top: 1px solid #e5e7eb; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05); z-index: 100; }
+    .tab-bar button { flex: 1; border: none; background: transparent; font-size: 15px; padding: 12px 0; color: #6b7280; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+    .tab-bar button.active { color: #FA7298; font-weight: 600; }
+
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal.hidden { display: none; }
+    .modal-card { background: white; border-radius: 6px; padding: 20px; width: 90%; max-width: 360px; animation: modalIn 0.3s ease; max-height: 85vh; overflow-y: auto; }
+    @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-card h3 { font-size: 16px; color: #FA7298; margin-bottom: 16px; text-align: center; }
+    .modal-card input, .modal-card select { width: 100%; padding: 12px; border: 2px solid #FA7298; border-radius: 4px; font-size: 16px; margin-bottom: 12px; outline: none; transition: border-color 0.2s; background: white; }
+    .modal-card select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FA7298' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+    .modal-card input:focus, .modal-card select:focus { border-color: #FA7298; }
+    .modal-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 4px; display: block; }
+    .input-hint { font-size: 12px; color: #9ca3af; margin-bottom: 12px; text-align: center; }
+    .color-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+    .color-option { width: 100%; aspect-ratio: 1; border-radius: 4px; cursor: pointer; border: 3px solid transparent; transition: all 0.2s; }
+    .color-option:active { transform: scale(0.9); }
+    .color-option.selected { border-color: #1f2937; box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937; }
+    .modal-buttons { display: flex; gap: 10px; }
+    .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-cancel { background: #f3f4f6; color: #6b7280; }
+    .btn-cancel:active { background: #e5e7eb; }
+    .btn-save { background: #FA7298; color: white; }
+    .btn-save:active { background: #cd3660; }
+    .btn-delete-plan { background: #fee2e2; color: #dc2626; width: 100%; margin-top: 10px; padding: 12px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; }
+    .btn-delete-plan:active { background: #fecaca; }
+
+    .long-press-menu { position: fixed; background: white; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; z-index: 999; min-width: 120px; }
+    .long-press-menu.hidden { display: none; }
+    .long-press-menu button { width: 100%; padding: 14px 16px; border: none; background: transparent; font-size: 14px; text-align: left; cursor: pointer; }
+    .long-press-menu button:active { background: #f3f4f6; }
+    .long-press-menu button.danger { color: #dc2626; }
+
+    .guide-tip { position: fixed; background: #1f2937; color: white; padding: 10px 14px; border-radius: 4px; font-size: 13px; max-width: 280px; z-index: 998; animation: tipIn 0.3s ease; bottom: 80px; left: 50%; transform: translateX(-50%); }
+    .guide-tip.hidden { display: none; }
+    .guide-tip::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #1f2937; }
+    @keyframes tipIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    .link-btn { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; text-decoration: none; color: #374151; font-size: 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s; }
+    .link-btn:active { background: #f3f4f6; }
+
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .tab-bar { height: calc(44px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); }
+      .page-container { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="date-nav">
+      <div class="date-nav-left">
+        <button id="prevDay" class="nav-btn">&#8249;</button>
+        <span id="currentDateDisplay">2024年01月01日</span>
+        <span id="plansTitle">我的目标</span>
+        <button id="nextDay" class="nav-btn">&#8250;</button>
+      </div>
+      <div class="date-nav-right">
+        <button id="addPlanBtn" title="添加目标" style="display:none;">+</button>
+        <button id="undoBtn" class="undo-btn" title="撤销">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+          </svg>
+        </button>
+        <button id="langBtn" class="lang-btn" title="切换语言">EN</button>
+        <button id="menuToggle" class="menu-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="2"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+            <circle cx="12" cy="19" r="2"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="dropdownMenu" class="dropdown-menu hidden">
+      <button id="clearTodayBtn" class="dropdown-item danger" data-i18n="clearToday">清空今日记录</button>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-submenu" data-i18n="blocksPerHour">每小时分块数</div>
+      <div class="block-size-options">
+        <button class="block-size-btn" data-size="2">2</button>
+        <button class="block-size-btn" data-size="3">3</button>
+        <button class="block-size-btn active" data-size="4">4</button>
+        <button class="block-size-btn" data-size="6">6</button>
+      </div>
+    </div>
+
+    <div class="page-container">
+      <!-- Time Page (Mini5.3.7) -->
+      <div id="timelinePage" class="timeline-page">
+        <div class="sidebar-wrapper">
+          <div id="categorySidebar" class="category-sidebar"></div>
+          <button id="sidebarToggle" class="sidebar-toggle" title="折叠/展开">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div id="timelineContainer" class="timeline-container"></div>
+      </div>
+
+      <!-- Stats Page (V5.2.7, 顶部日期栏将由 JS 控制隐藏) -->
+      <div id="statsPage" class="stats-page hidden">
+        <div class="stats-header">
+          <h2 data-i18n="statsTitle">睡眠统计</h2>
+          <p id="statsDateRange">本周睡眠数据</p>
+        </div>
+
+        <div id="adviceCard" class="advice-card">
+          <div class="advice-btn-row">
+            <button id="generateAdviceBtn" class="action-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+              </svg>
+              <span data-i18n="generateAdvice">生成睡眠建议</span>
+            </button>
+          </div>
+          <div id="adviceResultArea" class="advice-result-area"></div>
+        </div>
+
+        <div id="statsTip" class="stats-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); margin-bottom: 16px; padding: 14px; position: relative;">
+          <p style="font-size: 13px; color: #1e40af; margin: 0; padding-right: 24px; display: flex; align-items: flex-start; gap: 8px; word-break: break-word;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span data-i18n="statsTipText">请在时间页面使用「睡觉」分类来标记您的睡眠时间，系统将根据您记录的时间块自动计算睡眠时长和起床时间。</span>
+          </p>
+          <button id="dismissStatsTip" style="position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 20px; color: #1e40af; cursor: pointer; padding: 0; line-height: 1; opacity: 0.7;">&times;</button>
+        </div>
+
+        <div class="stats-card">
+          <h3 id="dailySleepTitle">每日睡眠时长</h3>
+          <div class="chart-container-wide"><canvas id="sleepBarChart"></canvas></div>
+        </div>
+
+        <div class="stats-card">
+          <h3 id="bedtimeTrendTitle">入睡时间趋势</h3>
+          <div class="chart-container-wide"><canvas id="bedtimeLineChart"></canvas></div>
+        </div>
+
+        <div class="stats-card">
+          <h3 data-i18n="timeDistribution">时间分布</h3>
+          <div class="chart-container"><canvas id="pieChart"></canvas></div>
+        </div>
+
+        <div class="stats-card">
+          <h3 data-i18n="detailedStats">详细统计</h3>
+          <div id="statsList" class="stats-list"></div>
+        </div>
+      </div>
+
+      <!-- Plans Page (Mini5.3.7) -->
+      <div id="plansPage" class="plans-page hidden">
+        <div class="plans-container">
+          <div id="plansList" class="plans-list"></div>
+          <div id="plansEmpty" class="plans-empty">
+            <div class="plans-empty-text" data-i18n="noGoalsYet">暂无目标</div>
+            <div class="plans-empty-hint" data-i18n="noGoalsHint">点击右上角加号添加目标</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About Page (V5.2.7) -->
+      <div id="aboutPage" class="about-page hidden">
+        <div style="width: 100%; max-width: 380px; margin: 0 auto; padding: 20px 12px;">
+          <h2 style="font-size: 20px; color: #0c4a6e; margin-bottom: 16px; text-align: center; font-weight: 600;" data-i18n="aboutUs">关于我们</h2>
+          <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <h3 style="font-size: 16px; color: #0c4a6e; margin-bottom: 14px; font-weight: 600; border-left: 4px solid #FA7298; padding-left: 10px;" data-i18n="statement">声明</h3>
+            <p id="aboutText1" style="font-size: 14px; color: #374151; line-height: 1.7; margin-bottom: 16px;">本app为LIF Group B68的小组的项目，服务于我们的选题：Developing Healthy Sleep Habits in College Students.</p>
+            <p id="aboutText2" style="font-size: 14px; color: #374151; line-height: 1.7; margin-bottom: 16px;">当代大学生的作息不规律，睡眠的时长与质量难以保证，对身心健康有较大影响。而经过调查与分析，我们发现其睡眠时间拖后的主要原因是一天的时间分配不周，以及不好的作息习惯。</p>
+            <p id="aboutText3" style="font-size: 14px; color: #374151; line-height: 1.7; margin-bottom: 0;">所以，我们希望通过此app来帮助大家更好的规划时间。用户既可以通过记录过去的时间来复盘今天的时间分配，也可以提前规划明天的时间以作计划。如此，我们便能更好地掌握自己的一天，以保证自己的睡眠时间。</p>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <h3 style="font-size: 16px; color: #0c4a6e; margin-bottom: 14px; font-weight: 600; border-left: 4px solid #FA7298; padding-left: 10px;" data-i18n="developers">开发人员</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px;">
+              <div style="font-size: 13px; color: #374151;">Jingyang Huang <span style="color: #6b7280; margin-left: 4px;">2580655</span></div>
+              <div style="font-size: 13px; color: #374151;">Yang Ji<span style="color: #6b7280; margin-left: 4px;">2579517</span></div>
+              <div style="font-size: 13px; color: #374151;">Chengxiao Li <span style="color: #6b7280; margin-left: 4px;">2577462</span></div>
+              <div style="font-size: 13px; color: #374151;">Yangxuan Li <span style="color: #6b7280; margin-left: 4px;">2580545</span></div>
+              <div style="font-size: 13px; color: #374151;">Yunxuan Qiu <span style="color: #6b7280; margin-left: 4px;">2582384</span></div>
+              <div style="font-size: 13px; color: #374151;">Ikta Thapa <span style="color: #6b7280; margin-left: 4px;">2581550</span></div>
+              <div style="font-size: 13px; color: #374151;">Qinze Wang <span style="color: #6b7280; margin-left: 4px;">2579616</span></div>
+              <div style="font-size: 13px; color: #374151;">Rui Yu <span style="color: #6b7280; margin-left: 4px;">2579644</span></div>
+              <div style="font-size: 13px; color: #374151;">Xinyi Zang <span style="color: #6b7280; margin-left: 4px;">2582355</span></div>
+              <div style="font-size: 13px; color: #374151;">Zhiqian Zhang <span style="color: #6b7280; margin-left: 4px;">2578756</span></div>
+            </div>
+            <p id="teamNote" style="font-size: 13px; color: #6b7280; margin-top: 14px; font-style: italic;">我们在项目中各有分工，都承担了相应的工作。</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="link-btn" id="connectLink">
+              <span data-i18n="groupConnect">小组Connect界面</span>
+              <span style="color: #9ca3af;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </span>
+            </div>
+            <div class="link-btn" id="githubLink">
+              <span data-i18n="visitRepo">GitHub仓库链接</span>
+              <span style="color: #9ca3af;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Order: 时间 → 统计 → 计划 → 关于 -->
+    <div class="tab-bar">
+      <button id="tabTimeline" class="active" data-i18n="time">时间</button>
+      <button id="tabStats" data-i18n="stats">统计</button>
+      <button id="tabPlans" data-i18n="plans">计划</button>
+      <button id="tabAbout" data-i18n="about">关于</button>
+    </div>
+  </div>
+
+  <div id="copyToast" class="copy-toast">已复制到剪贴板</div>
+
+  <div id="longPressMenu" class="long-press-menu hidden">
+    <button id="menuEdit" data-i18n="edit">编辑</button>
+    <button id="menuDelete" class="danger" data-i18n="delete">删除</button>
+    <button id="menuCancel" data-i18n="cancel">取消</button>
+  </div>
+
+  <div id="editModal" class="modal hidden">
+    <div class="modal-card">
+      <h3 id="modalTitle">添加分类</h3>
+      <input type="text" id="categoryNameInput" placeholder="输入分类名称" maxlength="8">
+      <div class="input-hint" data-i18n="maxChars">最多8个字符</div>
+      <div id="colorOptions" class="color-options"></div>
+      <div class="modal-buttons">
+        <button id="modalCancel" class="btn-cancel" data-i18n="cancel">取消</button>
+        <button id="modalSave" class="btn-save" data-i18n="save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="planModal" class="modal hidden">
+    <div class="modal-card">
+      <h3 id="planModalTitle">添加目标</h3>
+      <div id="planNamePreview" style="font-size:14px; color:#374151; margin-bottom:12px; padding:6px 10px; background:#f3f4f6; border-radius:4px; word-break:break-word;"></div>
+      <label class="modal-label" data-i18n="planCycleLabel">周期</label>
+      <select id="planCycleSelect">
+        <option value="daily">每天</option>
+        <option value="weekly">每周</option>
+        <option value="monthly">每月</option>
+      </select>
+      <label class="modal-label" data-i18n="planEventLabel">事件</label>
+      <select id="planCategorySelect"></select>
+      <label class="modal-label" data-i18n="planCompareLabel">比较方式</label>
+      <select id="planCompareSelect">
+        <option value="greater">多于</option>
+        <option value="less">少于</option>
+      </select>
+      <label class="modal-label" data-i18n="planTargetLabel">目标时长 (小时)</label>
+      <input type="number" id="planTargetHours" placeholder="目标时长（小时）" step="0.5" min="0.5" value="1" inputmode="decimal">
+      <label class="modal-label" data-i18n="planColorLabel">卡片颜色</label>
+      <div id="planColorOptions" class="color-options"></div>
+      <div class="modal-buttons" id="planModalButtons">
+        <button id="planModalCancel" class="btn-cancel" data-i18n="cancel">取消</button>
+        <button id="planModalSave" class="btn-save" data-i18n="save">保存</button>
+      </div>
+      <div id="planModalDeleteArea" style="display: none;">
+        <button id="planModalDelete" class="btn-delete-plan" data-i18n="deleteGoal">删除目标</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="guideTip" class="guide-tip hidden">长按分类可编辑或删除哦。</div>
+
+  <script>
+    const MAX_CATEGORIES = 12;
+    const MAX_NAME_LENGTH = 8;
+    let currentLang = 'en';
+    const i18n = {
+      zh: {
+        clearToday: '清空今日记录',
+        blocksPerHour: '每小时分块数',
+        timeDistribution: '时间分布',
+        detailedStats: '详细统计',
+        aboutUs: '关于我们',
+        statement: '声明',
+        developers: '开发人员',
+        groupConnect: '小组Connect界面',
+        visitRepo: '访问GitHub仓库',
+        time: '时间',
+        stats: '统计',
+        plans: '计划',
+        about: '关于',
+        edit: '编辑',
+        delete: '删除',
+        cancel: '取消',
+        save: '保存',
+        close: '关闭',
+        maxChars: '最多8个字符',
+        maxCharsPlan: '最多30个字符',
+        addCategory: '添加分类',
+        editCategory: '编辑分类',
+        inputPlaceholder: '输入分类名称',
+        planInputPlaceholder: '输入目标名称',
+        noRecordToday: '今天还没有记录哦',
+        maxCategoriesReached: '分类数量已达上限（最多12个）',
+        enterCategoryName: '请输入分类名称',
+        enterPlanName: '请输入目标名称',
+        guideTip: '长按分类可编辑或删除哦。',
+        copied: '已复制到剪贴板',
+        full: '满',
+        aboutText1: '本app为LIF Group B68的小组的项目，服务于我们的选题：Developing Healthy Sleep Habits in College Students.',
+        aboutText2: '当代大学生的作息不规律，睡眠的时长与质量难以保证，对身心健康有较大影响。而经过调查与分析，我们发现其睡眠时间拖后的主要原因是一天的时间分配不周，以及不好的作息习惯。',
+        aboutText3: '所以，我们希望通过此app来帮助大家更好的规划时间。用户既可以通过记录过去的时间来复盘今天的时间分配，也可以提前规划明天的时间以作计划。如此，我们便能更好地掌握自己的一天，以保证自己的睡眠时间。',
+        teamNote: '我们在项目中各有分工，都承担了相应的工作。',
+        weekDays: ['日', '一', '二', '三', '四', '五', '六'],
+        weekDaysFull: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+        statsTitle: '睡眠统计',
+        dailySleepDuration: '每日睡眠时长',
+        bedtimeTrend: '入睡时间趋势',
+        thisWeekData: '本周睡眠数据',
+        statsTipText: '请先标记你的「睡觉」时间，而后系统将根据您记录的时间块自动计算睡眠时长和起床时间~',
+        avgLabel: '平均',
+        noData: '暂无数据',
+        generateAdvice: '生成睡眠建议',
+        noDataAdvice: '请先记录睡眠数据喵',
+        advicePoint1Label: '一、睡眠时长分析',
+        advicePoint2Label: '二、入睡时间分析',
+        advicePoint3Label: '三、入睡时间稳定度分析',
+        advicePoint4Label: '四、异常入睡时间提醒',
+        myGoals: '我的目标',
+        addGoal: '添加目标',
+        editGoal: '编辑目标',
+        goalName: '目标名称',
+        noGoalsYet: '暂无目标',
+        noGoalsHint: '点击右上角加号添加目标',
+        deleteGoal: '删除目标',
+        streakDays: '已坚持 {days} 天',
+        streakWeeks: '已坚持 {weeks} 周',
+        streakMonths: '已坚持 {months} 个月',
+        planCycleLabel: '周期',
+        planEventLabel: '事件',
+        planCompareLabel: '比较方式',
+        planTargetLabel: '目标时长 (小时)',
+        planColorLabel: '卡片颜色',
+        cycleDaily: '每天',
+        cycleWeekly: '每周',
+        cycleMonthly: '每月',
+        compareGreater: '多于',
+        compareLess: '少于',
+        unitHours: '小时',
+        unitHoursEn: 'h',
+      },
+      en: {
+        clearToday: 'Clear Today',
+        blocksPerHour: 'Blocks per hour',
+        timeDistribution: 'Time Distribution',
+        detailedStats: 'Detailed Stats',
+        aboutUs: 'About Us',
+        statement: 'Statement',
+        developers: 'Developers',
+        groupConnect: 'Group Connect',
+        visitRepo: 'Link to the GitHub repo',
+        time: 'Time',
+        stats: 'Stats',
+        plans: 'Plans',
+        about: 'About',
+        edit: 'Edit',
+        delete: 'Delete',
+        cancel: 'Cancel',
+        save: 'Save',
+        close: 'Close',
+        maxChars: 'Max 8 characters',
+        maxCharsPlan: 'Max 30 characters',
+        addCategory: 'Add Category',
+        editCategory: 'Edit Category',
+        inputPlaceholder: 'Enter category name',
+        planInputPlaceholder: 'Enter goal name',
+        noRecordToday: 'No records today',
+        maxCategoriesReached: 'Max categories reached (12)',
+        enterCategoryName: 'Please enter category name',
+        enterPlanName: 'Please enter goal name',
+        guideTip: 'Long press to edit or delete.',
+        copied: 'Copied to clipboard',
+        full: 'Full',
+        aboutText1: 'This app belongs to the project of Group B68 of LIF Group and serves our chosen topic: Developing Healthy Sleep Habits in College Students.',
+        aboutText2: 'Contemporary college students often have irregular daily routines, making it difficult to ensure adequate sleep duration and quality, which significantly affects their physical and mental health. Through investigation and analysis, we found that the main reasons for delayed sleep time are poor time allocation throughout the day and unhealthy daily habits.',
+        aboutText3: 'Therefore, we hope to use this app to help users better plan their time. Users can either review their time allocation by recording how they have spent their time in the past or plan ahead for the next day by making a schedule. In doing so, we can better take control of our day and ensure adequate sleep time.',
+        teamNote: 'Each of us has our own role and has undertaken corresponding work in the project.',
+        weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        weekDaysFull: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        statsTitle: 'Sleep Stats',
+        dailySleepDuration: 'Daily Sleep Duration',
+        bedtimeTrend: 'Bedtime Trend',
+        thisWeekData: 'This Week Sleep Data',
+        statsTipText: 'Please use the "Sleep" category on the Time page to mark your sleep time. The system will automatically calculate sleep duration and wake-up time based on your recorded sleep blocks.',
+        avgLabel: 'Avg',
+        noData: 'No data',
+        generateAdvice: 'Generate Sleep Advice',
+        noDataAdvice: 'Please record sleep data first~',
+        advicePoint1Label: '1. Sleep Duration Analysis',
+        advicePoint2Label: '2. Bedtime Analysis',
+        advicePoint3Label: '3. Bedtime Consistency Analysis',
+        advicePoint4Label: '4. Irregular Bedtime Alert',
+        myGoals: 'My Goals',
+        addGoal: 'Add Goal',
+        editGoal: 'Edit Goal',
+        goalName: 'Goal Name',
+        noGoalsYet: 'No goals yet',
+        noGoalsHint: 'Tap the + button to add a goal',
+        deleteGoal: 'Delete Goal',
+        streakDays: 'Streak {days} days',
+        streakWeeks: 'Streak {weeks} weeks',
+        streakMonths: 'Streak {months} months',
+        planCycleLabel: 'Cycle',
+        planEventLabel: 'Event',
+        planCompareLabel: 'Comparison',
+        planTargetLabel: 'Target (hours)',
+        planColorLabel: 'Card Color',
+        cycleDaily: 'Daily',
+        cycleWeekly: 'Weekly',
+        cycleMonthly: 'Monthly',
+        compareGreater: 'More than',
+        compareLess: 'Less than',
+        unitHours: 'hours',
+        unitHoursEn: 'h',
+      }
+    };
+
+    function t(key) { return i18n[currentLang][key] || key; }
+
+    function updateAllText() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[currentLang][key]) el.textContent = i18n[currentLang][key];
+      });
+      document.getElementById('aboutText1').textContent = t('aboutText1');
+      document.getElementById('aboutText2').textContent = t('aboutText2');
+      document.getElementById('aboutText3').textContent = t('aboutText3');
+      document.getElementById('teamNote').textContent = t('teamNote');
+      document.getElementById('categoryNameInput').placeholder = t('inputPlaceholder');
+      document.getElementById('guideTip').textContent = t('guideTip');
+      document.getElementById('langBtn').textContent = currentLang === 'zh' ? '中' : 'EN';
+      document.getElementById('plansTitle').textContent = t('myGoals');
+      document.getElementById('statsDateRange').textContent = t('thisWeekData');
+      document.getElementById('planCycleSelect').querySelectorAll('option').forEach(opt => {
+        if (opt.value === 'daily') opt.textContent = t('cycleDaily');
+        else if (opt.value === 'weekly') opt.textContent = t('cycleWeekly');
+        else if (opt.value === 'monthly') opt.textContent = t('cycleMonthly');
+      });
+      document.getElementById('planCompareSelect').options[0].textContent = t('compareGreater');
+      document.getElementById('planCompareSelect').options[1].textContent = t('compareLess');
+      document.getElementById('planTargetHours').placeholder = t('planTargetLabel');
+      currentDateDisplay.innerHTML = formatDateDisplay(currentDate);
+      renderCategorySidebar();
+      renderPlans();
+      updatePlansEmptyState();
+      updateStatsPage();
+      updateTodayStats();
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'zh' ? 'en' : 'zh';
+      localStorage.setItem('app_language', currentLang);
+      updateAllText();
+      const resultArea = document.getElementById('adviceResultArea');
+      if (resultArea.classList.contains('visible') && resultArea.innerHTML.trim() !== '') {
+        generateSleepAdvice();
+      }
+    }
+
+    const COLOR_OPTIONS = [
+      { name: '玫瑰红', class: 'color-custom-1', bg: '#F16D7A', light: '#FADBD8' },
+      { name: '橙色', class: 'color-custom-2', bg: '#FD823F', light: '#FDEBD0' },
+      { name: '金色', class: 'color-custom-3', bg: '#E1BF1F', light: '#F9E79F' },
+      { name: '绿色', class: 'color-custom-4', bg: '#A4B229', light: '#E9F7CA' },
+      { name: '青绿', class: 'color-custom-5', bg: '#24AEB8', light: '#D1F2EB' },
+      { name: '蓝色', class: 'color-custom-6', bg: '#1E88C6', light: '#D4E6F1' },
+      { name: '深蓝', class: 'color-custom-7', bg: '#6C70DB', light: '#D6D8F5' },
+      { name: '淡紫', class: 'color-custom-8', bg: '#9B85CD', light: '#E8DAEF' },
+      { name: '紫色', class: 'color-custom-9', bg: '#BC70EC', light: '#EBDEF0' },
+      { name: '粉色', class: 'color-custom-10', bg: '#DD65AF', light: '#F5D0E3' },
+      { name: '灰绿', class: 'color-custom-11', bg: '#879ACE', light: '#D5DCEB' },
+      { name: '灰蓝', class: 'color-custom-12', bg: '#5E7B81', light: '#D5DBDB' }
+    ];
+
+    const DEFAULT_CATEGORIES = [
+      { id: 'preset_learn', name: 'Study', class: COLOR_OPTIONS[5].class },
+      { id: 'preset_sport', name: 'Exercise', class: COLOR_OPTIONS[1].class },
+      { id: 'preset_entertain', name: 'Entertainment', class: COLOR_OPTIONS[8].class },
+      { id: 'preset_interest', name: 'Hobby', class: COLOR_OPTIONS[4].class },
+      { id: 'preset_rest', name: 'Rest', class: COLOR_OPTIONS[11].class },
+      { id: 'preset_eat', name: 'Food', class: COLOR_OPTIONS[9].class },
+      { id: 'preset_sleep', name: 'Sleep', class: COLOR_OPTIONS[6].class }
+    ];
+
+    let userCategories = [];
+    let userPlans = [];
+    let database = {};
+    let currentDate = new Date();
+    let highlightedSlots = new Set();
+    let longPressedCategory = null;
+    let longPressTimer = null;
+    let editMode = 'add';
+    let selectedColorClass = COLOR_OPTIONS[0].class;
+    let selectedPlanColorClass = COLOR_OPTIONS[0].class;
+    let planEditMode = 'add';
+    let editingPlanId = null;
+    let sleepBarChart = null;
+    let bedtimeLineChart = null;
+    let pieChart = null;
+    let slotsPerHour = 4;
+    let sidebarCollapsed = false;
+    let isSelecting = false;
+    let selectionStart = null;
+    let selectionEnd = null;
+    let undoHistory = [];
+    const MAX_UNDO_HISTORY = 50;
+    let currentPage = 'timeline';
+
+    const categorySidebar = document.getElementById('categorySidebar');
+    const timelineContainer = document.getElementById('timelineContainer');
+    const currentDateDisplay = document.getElementById('currentDateDisplay');
+    const timelinePage = document.getElementById('timelinePage');
+    const statsPage = document.getElementById('statsPage');
+    const plansPage = document.getElementById('plansPage');
+    const aboutPage = document.getElementById('aboutPage');
+    const tabTimeline = document.getElementById('tabTimeline');
+    const tabStats = document.getElementById('tabStats');
+    const tabPlans = document.getElementById('tabPlans');
+    const tabAbout = document.getElementById('tabAbout');
+    const longPressMenu = document.getElementById('longPressMenu');
+    const editModal = document.getElementById('editModal');
+    const planModal = document.getElementById('planModal');
+    const guideTip = document.getElementById('guideTip');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const undoBtn = document.getElementById('undoBtn');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const copyToast = document.getElementById('copyToast');
+    const plansTitle = document.getElementById('plansTitle');
+    const addPlanBtn = document.getElementById('addPlanBtn');
+    const prevDayBtn = document.getElementById('prevDay');
+    const nextDayBtn = document.getElementById('nextDay');
+    const menuToggleBtn = document.getElementById('menuToggle');
+    const plansList = document.getElementById('plansList');
+    const plansEmpty = document.getElementById('plansEmpty');
+    const statsList = document.getElementById('statsList');
+
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatDateDisplay(date) {
+      const y = date.getFullYear();
+      const m = date.getMonth() + 1;
+      const d = date.getDate();
+      const weekDays = t('weekDays');
+      const w = weekDays[date.getDay()];
+      if (currentLang === 'zh') {
+        return `<span class="date-left">${m}月${d}日</span><span class="date-right"><span class="date-year">${y}年</span><span class="date-week">周${w}</span></span>`;
+      } else {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `<span class="date-left">${months[date.getMonth()]} ${d}</span><span class="date-right"><span class="date-year">${y}</span><span class="date-week">${w}</span></span>`;
+      }
+    }
+
+    function getCurrentData() {
+      const key = formatDate(currentDate);
+      return database[key] || {};
+    }
+
+    function saveData() { localStorage.setItem('timeline_daily', JSON.stringify(database)); }
+    function saveCategories() { localStorage.setItem('user_categories', JSON.stringify(userCategories)); }
+    function savePlans() { localStorage.setItem('user_plans', JSON.stringify(userPlans)); }
+    function saveSlotsPerHour() { localStorage.setItem('slots_per_hour', slotsPerHour.toString()); }
+    function saveUndoHistory() { localStorage.setItem('undo_history', JSON.stringify(undoHistory)); }
+    function saveSidebarState() { localStorage.setItem('sidebar_collapsed', sidebarCollapsed.toString()); }
+
+    function loadData() {
+      const savedLang = localStorage.getItem('app_language');
+      if (savedLang) currentLang = savedLang;
+      const savedCategories = localStorage.getItem('user_categories');
+      if (savedCategories) {
+        userCategories = JSON.parse(savedCategories);
+        const hasSleepCategory = userCategories.some(c => c.id === 'preset_sleep' || c.name === '睡觉' || c.name === 'Sleep');
+        if (!hasSleepCategory && userCategories.length < MAX_CATEGORIES) {
+          userCategories.push({ id: 'preset_sleep', name: 'Sleep', class: COLOR_OPTIONS[6].class });
+          saveCategories();
+        }
+      } else {
+        userCategories = [...DEFAULT_CATEGORIES];
+        saveCategories();
+      }
+      const savedPlans = localStorage.getItem('user_plans');
+      if (savedPlans) userPlans = JSON.parse(savedPlans); else userPlans = [];
+      const savedDatabase = localStorage.getItem('timeline_daily');
+      if (savedDatabase) database = JSON.parse(savedDatabase);
+      const savedSlots = localStorage.getItem('slots_per_hour');
+      if (savedSlots) slotsPerHour = parseInt(savedSlots);
+      const savedUndo = localStorage.getItem('undo_history');
+      if (savedUndo) undoHistory = JSON.parse(savedUndo);
+      const savedSidebarState = localStorage.getItem('sidebar_collapsed');
+      if (savedSidebarState === 'true') {
+        sidebarCollapsed = true;
+        categorySidebar.classList.add('collapsed');
+        sidebarToggle.classList.add('collapsed');
+      }
+      updateUndoButton();
+    }
+
+    function generateId() { return 'cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); }
+    function generatePlanId() { return 'plan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); }
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showCopyToast()).catch(() => fallbackCopy(text));
+      } else fallbackCopy(text);
+    }
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try { document.execCommand('copy'); showCopyToast(); } catch (err) {}
+      document.body.removeChild(textarea);
+    }
+    function showCopyToast() {
+      copyToast.textContent = t('copied');
+      copyToast.classList.add('show');
+      setTimeout(() => copyToast.classList.remove('show'), 2000);
+    }
+
+    function toggleSidebar() {
+      sidebarCollapsed = !sidebarCollapsed;
+      if (sidebarCollapsed) { categorySidebar.classList.add('collapsed'); sidebarToggle.classList.add('collapsed'); }
+      else { categorySidebar.classList.remove('collapsed'); sidebarToggle.classList.remove('collapsed'); }
+      saveSidebarState();
+    }
+
+    function pushUndoState() {
+      const state = { date: formatDate(currentDate), data: JSON.parse(JSON.stringify(database)) };
+      undoHistory.push(state);
+      if (undoHistory.length > MAX_UNDO_HISTORY) undoHistory.shift();
+      saveUndoHistory();
+      updateUndoButton();
+    }
+
+    function undo() {
+      if (undoHistory.length === 0) return;
+      const lastState = undoHistory.pop();
+      database = lastState.data;
+      saveData();
+      saveUndoHistory();
+      renderTimeline();
+      updateTodayStats();
+      updateUndoButton();
+    }
+
+    function updateUndoButton() {
+      if (undoHistory.length > 0) undoBtn.classList.add('active');
+      else undoBtn.classList.remove('active');
+    }
+
+    function renderCategorySidebar() {
+      categorySidebar.innerHTML = '';
+      userCategories.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = `cat-item ${cat.class}`;
+        div.dataset.id = cat.id;
+        div.dataset.name = cat.name;
+        div.dataset.class = cat.class;
+        div.textContent = cat.name.slice(0, MAX_NAME_LENGTH);
+        div.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (highlightedSlots.size > 0) applyCategory(cat);
+        });
+        div.addEventListener('touchstart', (e) => { e.stopPropagation(); startLongPress(e, cat); }, { passive: false });
+        div.addEventListener('touchend', (e) => { e.stopPropagation(); cancelLongPress(); });
+        div.addEventListener('touchmove', cancelLongPress);
+        div.addEventListener('mousedown', (e) => startLongPress(e, cat));
+        div.addEventListener('mouseup', cancelLongPress);
+        div.addEventListener('mouseleave', cancelLongPress);
+        categorySidebar.appendChild(div);
+      });
+      const addBtn = document.createElement('div');
+      addBtn.className = 'cat-item add-btn';
+      if (userCategories.length >= MAX_CATEGORIES) {
+        addBtn.classList.add('disabled');
+        addBtn.textContent = t('full');
+        addBtn.style.fontSize = '12px';
+      } else {
+        addBtn.textContent = '+';
+        addBtn.addEventListener('click', openAddModal);
+      }
+      categorySidebar.appendChild(addBtn);
+    }
+
+    function startLongPress(e, cat) {
+      longPressTimer = setTimeout(() => { longPressedCategory = cat; showLongPressMenu(e); }, 500);
+    }
+    function cancelLongPress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
+    function showLongPressMenu(e) {
+      let clientX, clientY;
+      if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+      else { clientX = e.clientX; clientY = e.clientY; }
+      longPressMenu.style.top = Math.min(clientY + 10, window.innerHeight - 150) + 'px';
+      longPressMenu.style.left = Math.min(clientX - 60, window.innerWidth - 130) + 'px';
+      longPressMenu.classList.remove('hidden');
+    }
+    function hideLongPressMenu() { longPressMenu.classList.add('hidden'); longPressedCategory = null; }
+
+    function renderTimeline() {
+      timelineContainer.innerHTML = '';
+      const data = getCurrentData();
+      for (let hour = 0; hour < 24; hour++) {
+        const row = document.createElement('div');
+        row.className = 'time-row';
+        const label = document.createElement('div');
+        label.className = 'time-label';
+        label.textContent = String(hour).padStart(2, '0') + ':00';
+        row.appendChild(label);
+        const slotsContainer = document.createElement('div');
+        slotsContainer.className = 'slots-container';
+        for (let slotIndex = 0; slotIndex < slotsPerHour; slotIndex++) {
+          const index = hour * slotsPerHour + slotIndex;
+          const slot = document.createElement('div');
+          slot.className = 'slot';
+          slot.dataset.index = index;
+          if (data[index]) {
+            slot.classList.add(data[index].class);
+            slot.textContent = slotsPerHour <= 3 ? data[index].label.slice(0, 2) : '';
+          } else {
+            slot.classList.add('empty');
+          }
+          slot.addEventListener('mousedown', (e) => { e.preventDefault(); startSelection(index); });
+          slot.addEventListener('mousemove', (e) => { if (isSelecting) updateSelection(index); });
+          slot.addEventListener('mouseup', () => endSelection());
+          slot.addEventListener('touchstart', (e) => { e.preventDefault(); startSelection(index); }, { passive: false });
+          slot.addEventListener('touchmove', (e) => {
+            if (isSelecting) {
+              const touch = e.touches[0];
+              const element = document.elementFromPoint(touch.clientX, touch.clientY);
+              if (element && element.classList.contains('slot')) updateSelection(parseInt(element.dataset.index));
+            }
+          }, { passive: false });
+          slot.addEventListener('touchend', () => endSelection());
+          slotsContainer.appendChild(slot);
+        }
+        row.appendChild(slotsContainer);
+        timelineContainer.appendChild(row);
+      }
+      updateHighlight();
+    }
+
+    function startSelection(index) { isSelecting = true; selectionStart = index; selectionEnd = index; highlightedSlots.clear(); highlightedSlots.add(index); updateHighlight(); }
+    function updateSelection(index) { if (!isSelecting) return; selectionEnd = index; const start = Math.min(selectionStart, selectionEnd); const end = Math.max(selectionStart, selectionEnd); highlightedSlots.clear(); for (let i = start; i <= end; i++) highlightedSlots.add(i); updateHighlight(); }
+    function endSelection() { isSelecting = false; }
+    function updateHighlight() { document.querySelectorAll('.slot').forEach(slot => { slot.classList.remove('highlight'); if (highlightedSlots.has(parseInt(slot.dataset.index))) slot.classList.add('highlight'); }); }
+
+    function applyCategory(cat) {
+      if (highlightedSlots.size === 0) return;
+      pushUndoState();
+      const key = formatDate(currentDate);
+      if (!database[key]) database[key] = {};
+      highlightedSlots.forEach(slotIndex => { database[key][slotIndex] = { label: cat.name, class: cat.class }; });
+      saveData();
+      renderTimeline();
+      updateTodayStats();
+      highlightedSlots.clear();
+    }
+
+    /* ============ Stats functions (V5.2.7) ============ */
+    function getWeekDates() {
+      const dates = [];
+      const today = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        dates.push(date);
+      }
+      return dates;
+    }
+
+    function getSleepDataForWeek() {
+      const weekDates = getWeekDates();
+      const sleepData = [];
+      const sleepCategory = userCategories.find(c => c.name === '睡觉' || c.name === 'Sleep' || c.id === 'preset_sleep');
+      const restCategory = userCategories.find(c => c.name === '休息' || c.name === 'Rest' || c.id === 'preset_rest');
+      const targetCategory = sleepCategory || restCategory;
+      weekDates.forEach((date) => {
+        const key = formatDate(date);
+        const dayData = database[key] || {};
+        const prevDate = new Date(date);
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevKey = formatDate(prevDate);
+        const prevDayData = database[prevKey] || {};
+        let totalSleepSlots = 0;
+        let bedtimeSlot = -1;
+        let wakeupSlot = -1;
+        if (targetCategory) {
+          const nightStartSlot = 21 * slotsPerHour;
+          const nightEndSlot = 28 * slotsPerHour;
+          for (let idx = nightStartSlot; idx < nightEndSlot; idx++) {
+            if (prevDayData[idx] && prevDayData[idx].class === targetCategory.class) {
+              if (bedtimeSlot === -1) bedtimeSlot = idx;
+              totalSleepSlots++;
+            }
+          }
+          const morningEndSlot = 12 * slotsPerHour;
+          let lastSleepSlot = -1;
+          for (let idx = 0; idx < morningEndSlot; idx++) {
+            if (dayData[idx] && dayData[idx].class === targetCategory.class) {
+              if (bedtimeSlot === -1) bedtimeSlot = idx;
+              totalSleepSlots++;
+              lastSleepSlot = idx;
+            }
+          }
+          if (lastSleepSlot !== -1) wakeupSlot = lastSleepSlot + 1;
+          if (bedtimeSlot === -1) {
+            for (let idx = nightStartSlot; idx < nightEndSlot; idx++) {
+              if (dayData[idx] && dayData[idx].class === targetCategory.class) { bedtimeSlot = idx; break; }
+            }
+          }
+        }
+        const minutesPerSlot = 60 / slotsPerHour;
+        const sleepHours = (totalSleepSlots * minutesPerSlot) / 60;
+        let bedtimeHour = null;
+        if (bedtimeSlot !== -1) {
+          let rawHour = Math.floor(bedtimeSlot / slotsPerHour) + (bedtimeSlot % slotsPerHour) / slotsPerHour;
+          if (rawHour < 12) rawHour += 24;
+          bedtimeHour = rawHour;
+        }
+        sleepData.push({ date, sleepHours, bedtimeHour, wakeupSlot });
+      });
+      return sleepData;
+    }
+
+    function generateSleepAdvice() {
+      const resultArea = document.getElementById('adviceResultArea');
+      const sleepData = getSleepDataForWeek();
+      const validSleepData = sleepData.filter(d => d.sleepHours > 0);
+
+      if (validSleepData.length === 0) {
+        resultArea.innerHTML = `<div class="advice-no-data">${t('noDataAdvice')}</div>`;
+        resultArea.classList.add('visible');
+        return;
+      }
+
+      const isZh = currentLang === 'zh';
+      let htmlParts = [];
+
+      const avgSleepHours = validSleepData.reduce((sum, d) => sum + d.sleepHours, 0) / validSleepData.length;
+      const avgH = Math.floor(avgSleepHours);
+      const avgM = Math.round((avgSleepHours - avgH) * 60);
+      const avgSleepStr = isZh ? `${avgH}小时${avgM}分钟` : `${avgH}h ${avgM}m`;
+
+      const HEALTHY_MIN = 7;
+      const HEALTHY_MAX = 10;
+      let point1Class = 'advice-encourage';
+      let point1Content = '';
+      if (avgSleepHours < HEALTHY_MIN) {
+        point1Class = 'advice-warn';
+        if (isZh) {
+          point1Content = `您的平均每日睡眠时长为 <span class="point-highlight">${avgSleepStr}</span>，<b>低于</b>大学生建议睡眠时长（7-10小时）。长期睡眠不足可能导致注意力下降、免疫力减弱和学习效率降低。建议您每晚提前规划就寝时间，确保每天至少<span class="point-highlight">7小时</span>的睡眠。`;
+        } else {
+          point1Content = `Your average daily sleep duration is <span class="point-highlight">${avgSleepStr}</span>, which is <b>below</b> the recommended sleep duration for college students (7-10 hours). Chronic sleep deprivation may lead to decreased attention, weakened immunity, and reduced academic performance. We suggest planning your bedtime earlier to ensure at least <span class="point-highlight">7 hours</span> of sleep per night.`;
+        }
+      } else if (avgSleepHours > HEALTHY_MAX) {
+        point1Class = 'advice-warn';
+        if (isZh) {
+          point1Content = `您的平均每日睡眠时长为 <span class="point-highlight">${avgSleepStr}</span>，<b>高于</b>大学生建议睡眠时长（7-10小时）。过长的睡眠可能是睡眠质量不佳的表现，也可能导致白天精神不振。建议保持规律作息，适当控制睡眠时间在<span class="point-highlight">7-10小时</span>之间。`;
+        } else {
+          point1Content = `Your average daily sleep duration is <span class="point-highlight">${avgSleepStr}</span>, which is <b>above</b> the recommended sleep duration for college students (7-10 hours). Excessively long sleep may indicate poor sleep quality or lead to daytime grogginess. We suggest maintaining a regular schedule and keeping sleep time within <span class="point-highlight">7-10 hours</span>.`;
+        }
+      } else {
+        point1Class = 'advice-encourage';
+        if (isZh) {
+          point1Content = `您的平均每日睡眠时长为 <span class="point-highlight">${avgSleepStr}</span>，处于<span class="point-good">健康区间（7-10小时）</span>，非常棒！良好的睡眠时长是身心健康的重要保障，请继续保持！`;
+        } else {
+          point1Content = `Your average daily sleep duration is <span class="point-highlight">${avgSleepStr}</span>, which falls within the <span class="point-good">healthy range (7-10 hours)</span>. Great job! Adequate sleep duration is essential for physical and mental well-being. Keep it up!`;
+        }
+      }
+      htmlParts.push(`<div class="advice-point ${point1Class}"><span class="point-label">${t('advicePoint1Label')}</span>${point1Content}</div>`);
+
+      const validBedtimeData = validSleepData.filter(d => d.bedtimeHour !== null);
+      if (validBedtimeData.length > 0) {
+        const avgBedtime = validBedtimeData.reduce((sum, d) => sum + d.bedtimeHour, 0) / validBedtimeData.length;
+        let displayHour = Math.floor(avgBedtime);
+        if (displayHour >= 24) displayHour -= 24;
+        const displayMin = Math.round((avgBedtime - Math.floor(avgBedtime)) * 60);
+        const avgBedtimeStr = `${String(displayHour).padStart(2, '0')}:${String(displayMin).padStart(2, '0')}`;
+        const bedtimeValue = avgBedtime;
+        let point2Class = 'advice-encourage';
+        let point2Content = '';
+
+        if (bedtimeValue < 23.5) {
+          point2Class = 'advice-encourage';
+          if (isZh) {
+            point2Content = `您的平均入睡时间为 <span class="point-highlight">${avgBedtimeStr}</span>，<span class="point-good">作息良好</span>！保持规律的入睡时间有助于维持健康的昼夜节律，请继续保持！`;
+          } else {
+            point2Content = `Your average bedtime is <span class="point-highlight">${avgBedtimeStr}</span>, which is <span class="point-good">good</span>! Maintaining a consistent bedtime helps sustain a healthy circadian rhythm. Keep it up!`;
+          }
+        } else if (bedtimeValue < 25.0) {
+          point2Class = 'advice-warn';
+          if (isZh) {
+            point2Content = `您的平均入睡时间为 <span class="point-highlight">${avgBedtimeStr}</span>，<b>偏晚</b>。建议将入睡时间调整到<span class="point-good">23:30之前</span>，以获得更充足的深度睡眠。`;
+          } else {
+            point2Content = `Your average bedtime is <span class="point-highlight">${avgBedtimeStr}</span>, which is <b>on the late side</b>. We recommend adjusting your bedtime to <span class="point-good">before 11:30 PM</span> for more restorative deep sleep.`;
+          }
+        } else {
+          point2Class = 'advice-alert';
+          if (isZh) {
+            point2Content = `您的平均入睡时间为 <span class="point-highlight">${avgBedtimeStr}</span>（凌晨），<b>明显过晚</b>。长期熬夜会严重影响身体健康和次日学习效率。建议您尝试每天提前<span class="point-highlight">15-30分钟</span>入睡，逐步将入睡时间调整到<span class="point-good">23:30之前</span>。`;
+          } else {
+            point2Content = `Your average bedtime is <span class="point-highlight">${avgBedtimeStr}</span> (past midnight), which is <b>significantly late</b>. Chronic late nights can severely impact health and next-day productivity. We suggest gradually moving your bedtime earlier by <span class="point-highlight">15-30 minutes</span> each day, aiming for <span class="point-good">before 11:30 PM</span>.`;
+          }
+        }
+        htmlParts.push(`<div class="advice-point ${point2Class}"><span class="point-label">${t('advicePoint2Label')}</span>${point2Content}</div>`);
+      }
+
+      if (validBedtimeData.length >= 2) {
+        const bedtimes = validBedtimeData.map(d => d.bedtimeHour);
+        const avgBT = bedtimes.reduce((sum, v) => sum + v, 0) / bedtimes.length;
+        const variance = bedtimes.reduce((sum, v) => sum + Math.pow(v - avgBT, 2), 0) / bedtimes.length;
+        const stdDevHours = Math.sqrt(variance);
+        const stdDevMinutes = stdDevHours * 60;
+
+        let point3Class = 'advice-encourage';
+        let point3Content = '';
+        const STABLE_THRESHOLD = 1.0;
+        const UNSTABLE_THRESHOLD = 2.0;
+
+        if (stdDevHours < STABLE_THRESHOLD) {
+          point3Class = 'advice-encourage';
+          if (isZh) {
+            point3Content = `您的入睡时间非常<span class="point-good">稳定</span>（标准差约${Math.round(stdDevMinutes)}分钟），每天基本都在相近的时间入睡。这说明您的作息习惯很好，有助于身体形成稳定的生物钟。`;
+          } else {
+            point3Content = `Your bedtime is very <span class="point-good">consistent</span> (standard deviation ~${Math.round(stdDevMinutes)} min). You go to bed at roughly the same time each day, which helps your body maintain a stable biological clock.`;
+          }
+        } else if (stdDevHours >= UNSTABLE_THRESHOLD) {
+          point3Class = 'advice-alert';
+          if (isZh) {
+            point3Content = `您的入睡时间<span class="point-warn">波动较大</span>（标准差约${Math.round(stdDevMinutes)}分钟），每天入睡时间差异明显。<b>入睡时间的稳定性对健康至关重要。</b>`;
+            point3Content += `<div class="point-ref">研究表明，睡眠-觉醒时间的不规律性与昼夜节律紊乱、睡眠质量下降以及负面健康结果显著相关（参考：Bei, B., et al. (2016). Sleep and circadian rhythm in health and disease. <i>Sleep Medicine Reviews</i>, 30, 1-10.）。建议您尽量每天在固定的时间就寝，即使周末也避免大幅度的作息变化。</div>`;
+          } else {
+            point3Content = `Your bedtime <span class="point-warn">varies significantly</span> (standard deviation ~${Math.round(stdDevMinutes)} min). <b>Bedtime consistency is crucial for health.</b>`;
+            point3Content += `<div class="point-ref">Research shows that irregular sleep-wake timing is significantly associated with circadian disruption, decreased sleep quality, and adverse health outcomes (Ref: Bei, B., et al. (2016). Sleep and circadian rhythm in health and disease. <i>Sleep Medicine Reviews</i>, 30, 1-10.). We recommend going to bed at a fixed time each day, avoiding large shifts even on weekends.</div>`;
+          }
+        } else {
+          point3Class = 'advice-warn';
+          if (isZh) {
+            point3Content = `您的入睡时间<span class="point-warn">存在一定波动</span>（标准差约${Math.round(stdDevMinutes)}分钟），属于比较稳定的范围。但更稳定的入睡时间有助于提升睡眠质量。建议尽量将每日入睡时间的差异控制在<span class="point-good">1小时以内</span>。`;
+          } else {
+            point3Content = `Your bedtime shows <span class="point-warn">some variability</span> (standard deviation ~${Math.round(stdDevMinutes)} min), which is moderately stable. However, a more consistent bedtime can help improve sleep quality. We suggest keeping daily bedtime differences within <span class="point-good">1 hour</span>.`;
+          }
+        }
+        htmlParts.push(`<div class="advice-point ${point3Class}"><span class="point-label">${t('advicePoint3Label')}</span>${point3Content}</div>`);
+
+        const OUTLIER_THRESHOLD_HOURS = 1.5;
+        const outliers = [];
+        validBedtimeData.forEach(d => {
+          const deviation = Math.abs(d.bedtimeHour - avgBT);
+          if (deviation >= OUTLIER_THRESHOLD_HOURS) outliers.push({ date: d.date, bedtimeHour: d.bedtimeHour, deviation: deviation });
+        });
+
+        if (outliers.length > 0 && stdDevHours >= STABLE_THRESHOLD) {
+          let point4Class = 'advice-alert';
+          let point4Content = '';
+          if (isZh) {
+            point4Content = `在您的睡眠记录中，以下日期的入睡时间<b>明显偏离</b>了您的平均水平：<br>`;
+            outliers.forEach(o => {
+              const m = o.date.getMonth() + 1;
+              const d = o.date.getDate();
+              let displayHour = Math.floor(o.bedtimeHour);
+              if (displayHour >= 24) displayHour -= 24;
+              const min = Math.round((o.bedtimeHour - Math.floor(o.bedtimeHour)) * 60);
+              const timeStr = `${String(displayHour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+              point4Content += `<span class="point-highlight">${m}月${d}日 ${timeStr}</span>（偏离约${Math.round(o.deviation * 60)}分钟）<br>`;
+            });
+            point4Content += `这种偶发性的熬夜可能会打乱您的睡眠节律，导致后续几天的入睡困难。建议尽量避免单次大幅度的作息变动，即使特殊情况也尽量不要偏离平时入睡时间超过1小时。`;
+          } else {
+            point4Content = `The following dates show bedtimes that <b>significantly deviated</b> from your average:<br>`;
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            outliers.forEach(o => {
+              let displayHour = Math.floor(o.bedtimeHour);
+              if (displayHour >= 24) displayHour -= 24;
+              const min = Math.round((o.bedtimeHour - Math.floor(o.bedtimeHour)) * 60);
+              const timeStr = `${String(displayHour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+              point4Content += `<span class="point-highlight">${months[o.date.getMonth()]} ${o.date.getDate()} ${timeStr}</span> (~${Math.round(o.deviation * 60)} min deviation)<br>`;
+            });
+            point4Content += `Such occasional late nights can disrupt your sleep rhythm and make it harder to fall asleep in the following days. Try to avoid large single-day shifts in bedtime, and even in special circumstances, keep deviations within 1 hour of your usual bedtime.`;
+          }
+          htmlParts.push(`<div class="advice-point ${point4Class}"><span class="point-label">${t('advicePoint4Label')}</span>${point4Content}</div>`);
+        }
+      } else if (validBedtimeData.length === 1) {
+        if (isZh) {
+          htmlParts.push(`<div class="advice-point advice-encourage"><span class="point-label">${t('advicePoint3Label')}</span>目前只有1天的入睡时间数据，还无法分析稳定度。请继续记录更多天的睡眠数据后再查看。</div>`);
+        } else {
+          htmlParts.push(`<div class="advice-point advice-encourage"><span class="point-label">${t('advicePoint3Label')}</span>Only 1 day of bedtime data is available so far. Please record more sleep data for a stability analysis.</div>`);
+        }
+      }
+
+      resultArea.innerHTML = htmlParts.join('');
+      resultArea.classList.add('visible');
+    }
+
+    function updateStatsPage() {
+      const sleepData = getSleepDataForWeek();
+      const validSleepData = sleepData.filter(d => d.sleepHours > 0);
+      let avgSleepText = '';
+      if (validSleepData.length > 0) {
+        const avgSleep = validSleepData.reduce((sum, d) => sum + d.sleepHours, 0) / validSleepData.length;
+        const avgHours = Math.floor(avgSleep);
+        const avgMins = Math.round((avgSleep - avgHours) * 60);
+        avgSleepText = `${avgHours}h ${avgMins}m`;
+      }
+      const validBedtimeData = sleepData.filter(d => d.bedtimeHour !== null);
+      let avgBedtimeText = '';
+      if (validBedtimeData.length > 0) {
+        const avgBedtime = validBedtimeData.reduce((sum, d) => sum + d.bedtimeHour, 0) / validBedtimeData.length;
+        let displayHour = Math.floor(avgBedtime);
+        if (displayHour >= 24) displayHour -= 24;
+        const displayMin = Math.round((avgBedtime - Math.floor(avgBedtime)) * 60);
+        avgBedtimeText = `${String(displayHour).padStart(2, '0')}:${String(displayMin).padStart(2, '0')}`;
+      }
+      const dailySleepTitleEl = document.getElementById('dailySleepTitle');
+      if (dailySleepTitleEl) {
+        const baseTitle = t('dailySleepDuration');
+        dailySleepTitleEl.textContent = avgSleepText ? `${baseTitle}: ${t('avgLabel')} ${avgSleepText}` : `${baseTitle}: ${t('noData')}`;
+      }
+      const bedtimeTrendTitleEl = document.getElementById('bedtimeTrendTitle');
+      if (bedtimeTrendTitleEl) {
+        const baseTitle = t('bedtimeTrend');
+        bedtimeTrendTitleEl.textContent = avgBedtimeText ? `${baseTitle}: ${t('avgLabel')} ${avgBedtimeText}` : `${baseTitle}: ${t('noData')}`;
+      }
+      const weekDays = t('weekDays');
+      renderSleepBarChart(sleepData, weekDays);
+      renderBedtimeLineChart(sleepData, weekDays);
+    }
+
+    function updateTodayStats() {
+      const data = getCurrentData();
+      const stats = {};
+      userCategories.forEach(cat => { stats[cat.id] = { name: cat.name, class: cat.class, count: 0 }; });
+      Object.values(data).forEach(slot => {
+        const cat = userCategories.find(c => c.class === slot.class);
+        if (cat && stats[cat.id]) stats[cat.id].count++;
+      });
+      const totalSlots = Object.values(data).length;
+      const minutesPerSlot = 60 / slotsPerHour;
+      statsList.innerHTML = '';
+      const hasData = Object.values(stats).some(s => s.count > 0);
+      if (!hasData) {
+        statsList.innerHTML = `<div class="no-data"><div>${t('noRecordToday')}</div></div>`;
+      } else {
+        const sortedStats = Object.values(stats).filter(s => s.count > 0).sort((a, b) => b.count - a.count);
+        sortedStats.forEach(s => {
+          const minutes = s.count * minutesPerSlot;
+          const hours = Math.floor(minutes / 60);
+          const mins = Math.round(minutes % 60);
+          const timeStr = hours > 0 ? `${hours}h${mins}m` : `${mins}m`;
+          const percent = totalSlots > 0 ? Math.round((s.count / totalSlots) * 100) : 0;
+          const item = document.createElement('div');
+          item.className = 'stats-item';
+          const colorOption = COLOR_OPTIONS.find(c => c.class === s.class);
+          const bgColor = colorOption ? colorOption.bg : '#94a3b8';
+          item.innerHTML = `<div class="stats-color" style="background: ${bgColor}"></div><div class="stats-name">${s.name}</div><div class="stats-time">${timeStr}</div><div class="stats-percent">${percent}%</div>`;
+          statsList.appendChild(item);
+        });
+      }
+      renderPieChart(stats);
+    }
+
+    function renderPieChart(stats) {
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      const chartData = Object.values(stats).filter(s => s.count > 0);
+      if (pieChart) { pieChart.destroy(); pieChart = null; }
+      if (chartData.length === 0) return;
+      const minutesPerSlot = 60 / slotsPerHour;
+      const labels = chartData.map(s => s.name);
+      const values = chartData.map(s => s.count * minutesPerSlot);
+      const colors = chartData.map(s => {
+        const colorOption = COLOR_OPTIONS.find(c => c.class === s.class);
+        return colorOption ? colorOption.bg : '#94a3b8';
+      });
+      pieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
+        options: { responsive: true, cutout: '60%', plugins: { legend: { display: false } } }
+      });
+    }
+
+    function renderSleepBarChart(sleepData, weekDays) {
+      const ctx = document.getElementById('sleepBarChart').getContext('2d');
+      if (sleepBarChart) sleepBarChart.destroy();
+      const labels = sleepData.map(d => weekDays[d.date.getDay()]);
+      const values = sleepData.map(d => d.sleepHours);
+      sleepBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, backgroundColor: '#6C70DB', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 12, ticks: { callback: v => v + 'h' } } } }
+      });
+    }
+
+    function renderBedtimeLineChart(sleepData, weekDays) {
+      const ctx = document.getElementById('bedtimeLineChart').getContext('2d');
+      if (bedtimeLineChart) bedtimeLineChart.destroy();
+      const labels = sleepData.map(d => weekDays[d.date.getDay()]);
+      const values = sleepData.map(d => d.bedtimeHour);
+      bedtimeLineChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ data: values, borderColor: '#FA7298', backgroundColor: 'rgba(250,114,152,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#FA7298', pointRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 20, max: 28, ticks: { callback: v => { const hour = v >= 24 ? v - 24 : v; return String(Math.floor(hour)).padStart(2, '0') + ':00'; } } } } }
+      });
+    }
+
+    /* ============ Plans (Mini5.3.7) ============ */
+    function getCategoryHours(dateKey, categoryId) {
+      const dayData = database[dateKey] || {};
+      const category = userCategories.find(c => c.id === categoryId);
+      if (!category) return 0;
+      let count = 0;
+      for (let i = 0; i < 24 * slotsPerHour; i++) {
+        if (dayData[i] && dayData[i].class === category.class) count++;
+      }
+      return (count * (60 / slotsPerHour)) / 60;
+    }
+
+    function computePlanStreak(plan) {
+      if (!plan.categoryId || !userCategories.some(c => c.id === plan.categoryId)) return 0;
+      const today = new Date();
+      let streakDays = 0;
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - 1);
+      const maxDaysBack = 365;
+      for (let i = 0; i < maxDaysBack; i++) {
+        const dateKey = formatDate(checkDate);
+        const hours = getCategoryHours(dateKey, plan.categoryId);
+        let conditionMet = false;
+        if (plan.compareType === 'greater') conditionMet = hours > plan.targetHours;
+        else conditionMet = hours < plan.targetHours;
+        if (conditionMet) { streakDays++; checkDate.setDate(checkDate.getDate() - 1); }
+        else break;
+      }
+      return streakDays;
+    }
+
+    function getStreakText(plan) {
+      const totalDays = computePlanStreak(plan);
+      if (plan.cycle === 'weekly') {
+        const weeks = Math.floor(totalDays / 7);
+        return t('streakWeeks').replace('{weeks}', weeks);
+      } else if (plan.cycle === 'monthly') {
+        const months = Math.floor(totalDays / 30);
+        return t('streakMonths').replace('{months}', months);
+      } else {
+        return t('streakDays').replace('{days}', totalDays);
+      }
+    }
+
+    function renderPlans() {
+      plansList.innerHTML = '';
+      if (userPlans.length === 0) { updatePlansEmptyState(); return; }
+      userPlans.forEach(plan => {
+        const card = document.createElement('div');
+        card.className = 'plan-card';
+        const colorOption = COLOR_OPTIONS.find(c => c.class === plan.colorClass);
+        if (colorOption) {
+          card.style.background = `linear-gradient(135deg, ${colorOption.bg}dd 0%, ${colorOption.light}dd 100%)`;
+        }
+        const streakText = getStreakText(plan);
+        card.innerHTML = `<span class="plan-card-name">${escapeHtml(plan.name)}</span><span class="plan-card-streak">${streakText}</span>`;
+        card.addEventListener('click', () => openEditPlanModal(plan));
+        plansList.appendChild(card);
+      });
+      updatePlansEmptyState();
+    }
+
+    function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function updatePlansEmptyState() {
+      if (userPlans.length === 0) {
+        plansEmpty.style.display = 'block';
+        plansList.style.display = 'none';
+        plansEmpty.querySelector('.plans-empty-text').textContent = t('noGoalsYet');
+        plansEmpty.querySelector('.plans-empty-hint').textContent = t('noGoalsHint');
+      } else {
+        plansEmpty.style.display = 'none';
+        plansList.style.display = 'flex';
+      }
+    }
+
+    function populatePlanCategorySelect() {
+      const select = document.getElementById('planCategorySelect');
+      select.innerHTML = '';
+      userCategories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
+      });
+    }
+
+    function generatePlanPreviewName() {
+      const cycleSelect = document.getElementById('planCycleSelect');
+      const categorySelect = document.getElementById('planCategorySelect');
+      const compareSelect = document.getElementById('planCompareSelect');
+      const targetHoursInput = document.getElementById('planTargetHours');
+      const cycleText = cycleSelect.options[cycleSelect.selectedIndex]?.textContent || cycleSelect.value;
+      const categoryName = categorySelect.options[categorySelect.selectedIndex]?.textContent || '';
+      const compareText = compareSelect.options[compareSelect.selectedIndex]?.textContent || compareSelect.value;
+      const hours = targetHoursInput.value || '0';
+      const unit = t('unitHours');
+      return `${cycleText} ${categoryName} ${compareText} ${hours} ${unit}`;
+    }
+
+    function updatePlanNamePreview() {
+      const previewDiv = document.getElementById('planNamePreview');
+      if (previewDiv) previewDiv.textContent = generatePlanPreviewName();
+    }
+
+    function openAddPlanModal() {
+      planEditMode = 'add'; editingPlanId = null;
+      document.getElementById('planModalTitle').textContent = t('addGoal');
+      document.getElementById('planModalDeleteArea').style.display = 'none';
+      document.getElementById('planCycleSelect').value = 'daily';
+      populatePlanCategorySelect();
+      if (userCategories.length > 0) document.getElementById('planCategorySelect').value = userCategories[0].id;
+      document.getElementById('planCompareSelect').value = 'greater';
+      document.getElementById('planTargetHours').value = 1;
+      selectedPlanColorClass = COLOR_OPTIONS[0].class;
+      renderPlanColorOptions();
+      updatePlanNamePreview();
+      planModal.classList.remove('hidden');
+    }
+
+    function openEditPlanModal(plan) {
+      planEditMode = 'edit'; editingPlanId = plan.id;
+      document.getElementById('planModalTitle').textContent = t('editGoal');
+      document.getElementById('planModalDeleteArea').style.display = 'block';
+      document.getElementById('planCycleSelect').value = plan.cycle || 'daily';
+      populatePlanCategorySelect();
+      document.getElementById('planCategorySelect').value = plan.categoryId || (userCategories[0]?.id || '');
+      document.getElementById('planCompareSelect').value = plan.compareType || 'greater';
+      document.getElementById('planTargetHours').value = plan.targetHours || 1;
+      selectedPlanColorClass = plan.colorClass;
+      renderPlanColorOptions();
+      updatePlanNamePreview();
+      planModal.classList.remove('hidden');
+    }
+
+    function renderPlanColorOptions() {
+      const container = document.getElementById('planColorOptions');
+      container.innerHTML = '';
+      COLOR_OPTIONS.forEach(color => {
+        const div = document.createElement('div');
+        div.className = `color-option ${color.class}`;
+        if (color.class === selectedPlanColorClass) div.classList.add('selected');
+        div.addEventListener('click', () => { selectedPlanColorClass = color.class; renderPlanColorOptions(); });
+        container.appendChild(div);
+      });
+    }
+
+    function savePlan() {
+      const cycle = document.getElementById('planCycleSelect').value;
+      const categoryId = document.getElementById('planCategorySelect').value;
+      const compareType = document.getElementById('planCompareSelect').value;
+      const targetHours = parseFloat(document.getElementById('planTargetHours').value) || 1;
+      if (!categoryId) { alert('Please select a category'); return; }
+      const name = generatePlanPreviewName();
+      const planData = {
+        id: planEditMode === 'add' ? generatePlanId() : editingPlanId,
+        name, colorClass: selectedPlanColorClass, cycle, categoryId, compareType, targetHours
+      };
+      if (planEditMode === 'add') userPlans.push(planData);
+      else {
+        const idx = userPlans.findIndex(p => p.id === editingPlanId);
+        if (idx !== -1) userPlans[idx] = planData;
+      }
+      savePlans(); renderPlans(); planModal.classList.add('hidden');
+    }
+
+    function deletePlan(planId) {
+      userPlans = userPlans.filter(p => p.id !== planId);
+      savePlans(); renderPlans();
+      if (!planModal.classList.contains('hidden') && editingPlanId === planId) planModal.classList.add('hidden');
+    }
+
+    function changeDate(offset) {
+      currentDate.setDate(currentDate.getDate() + offset);
+      currentDateDisplay.innerHTML = formatDateDisplay(currentDate);
+      highlightedSlots.clear();
+      renderTimeline();
+      updateTodayStats();
+    }
+
+    function openAddModal() {
+      if (userCategories.length >= MAX_CATEGORIES) { alert(t('maxCategoriesReached')); return; }
+      editMode = 'add';
+      document.getElementById('modalTitle').textContent = t('addCategory');
+      document.getElementById('categoryNameInput').value = '';
+      document.getElementById('categoryNameInput').placeholder = t('inputPlaceholder');
+      selectedColorClass = COLOR_OPTIONS[0].class;
+      renderColorOptions();
+      editModal.classList.remove('hidden');
+    }
+
+    function openEditModal() {
+      if (!longPressedCategory) return;
+      editMode = 'edit';
+      document.getElementById('modalTitle').textContent = t('editCategory');
+      document.getElementById('categoryNameInput').value = longPressedCategory.name;
+      document.getElementById('categoryNameInput').placeholder = t('inputPlaceholder');
+      selectedColorClass = longPressedCategory.class;
+      renderColorOptions();
+      editModal.classList.remove('hidden');
+      hideLongPressMenu();
+    }
+
+    function renderColorOptions() {
+      const container = document.getElementById('colorOptions');
+      container.innerHTML = '';
+      COLOR_OPTIONS.forEach(color => {
+        const div = document.createElement('div');
+        div.className = `color-option ${color.class}`;
+        if (color.class === selectedColorClass) div.classList.add('selected');
+        div.addEventListener('click', () => { selectedColorClass = color.class; renderColorOptions(); });
+        container.appendChild(div);
+      });
+    }
+
+    function saveCategory() {
+      let name = document.getElementById('categoryNameInput').value.trim();
+      if (!name) { alert(t('enterCategoryName')); return; }
+      if (name.length > MAX_NAME_LENGTH) name = name.slice(0, MAX_NAME_LENGTH);
+      if (editMode === 'add') {
+        userCategories.push({ id: generateId(), name, class: selectedColorClass });
+      } else {
+        const idx = userCategories.findIndex(c => c.id === longPressedCategory.id);
+        if (idx !== -1) { userCategories[idx].name = name; userCategories[idx].class = selectedColorClass; }
+      }
+      saveCategories();
+      renderCategorySidebar();
+      renderTimeline();
+      updateTodayStats();
+      editModal.classList.add('hidden');
+    }
+
+    function deleteCategory() {
+      if (!longPressedCategory) return;
+      userCategories = userCategories.filter(c => c.id !== longPressedCategory.id);
+      saveCategories();
+      renderCategorySidebar();
+      updateTodayStats();
+      hideLongPressMenu();
+    }
+
+    function clearToday() {
+      pushUndoState();
+      database[formatDate(currentDate)] = {};
+      saveData();
+      renderTimeline();
+      updateTodayStats();
+      highlightedSlots.clear();
+      hideDropdownMenu();
+    }
+
+    function toggleDropdownMenu() { dropdownMenu.classList.toggle('hidden'); }
+    function hideDropdownMenu() { dropdownMenu.classList.add('hidden'); }
+
+    function updateBlockSizeButtons() {
+      document.querySelectorAll('.block-size-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.size) === slotsPerHour) btn.classList.add('active');
+      });
+    }
+
+    function setBlockSize(size) {
+      slotsPerHour = size;
+      saveSlotsPerHour();
+      updateBlockSizeButtons();
+      renderTimeline();
+      updateTodayStats();
+    }
+
+    function showGuideIfNeeded() {
+      const shown = localStorage.getItem('guide_shown');
+      if (!shown) {
+        guideTip.textContent = t('guideTip');
+        guideTip.classList.remove('hidden');
+        setTimeout(() => { guideTip.classList.add('hidden'); localStorage.setItem('guide_shown', '1'); }, 5000);
+        guideTip.addEventListener('click', () => { guideTip.classList.add('hidden'); localStorage.setItem('guide_shown', '1'); });
+      }
+    }
+
+    function updateDateNavForPage(page) {
+      const dateNav = document.querySelector('.date-nav');
+      if (page === 'plans') {
+        dateNav.style.display = 'flex';
+        prevDayBtn.style.display = 'none';
+        currentDateDisplay.style.display = 'none';
+        nextDayBtn.style.display = 'none';
+        plansTitle.style.display = 'block';
+        plansTitle.style.position = 'absolute';
+        plansTitle.style.left = '50%';
+        plansTitle.style.transform = 'translateX(-50%)';
+        addPlanBtn.style.display = 'flex';
+        undoBtn.style.display = 'none';
+        langBtn.style.display = 'none';
+        menuToggleBtn.style.display = 'none';
+      } else if (page === 'stats' || page === 'about') {
+        // 统计页和关于页都隐藏整个顶部日期栏
+        dateNav.style.display = 'none';
+        plansTitle.style.display = 'none';
+      } else {
+        // timeline page
+        dateNav.style.display = 'flex';
+        prevDayBtn.style.display = '';
+        currentDateDisplay.style.display = '';
+        nextDayBtn.style.display = '';
+        plansTitle.style.display = 'none';
+        plansTitle.style.position = '';
+        plansTitle.style.left = '';
+        plansTitle.style.transform = '';
+        addPlanBtn.style.display = 'none';
+        undoBtn.style.display = '';
+        langBtn.style.display = '';
+        menuToggleBtn.style.display = '';
+        updateUndoButton();
+      }
+    }
+
+    function showPage(page) {
+      currentPage = page;
+      timelinePage.classList.add('hidden');
+      statsPage.classList.add('hidden');
+      plansPage.classList.add('hidden');
+      aboutPage.classList.add('hidden');
+      tabTimeline.classList.remove('active');
+      tabStats.classList.remove('active');
+      tabPlans.classList.remove('active');
+      tabAbout.classList.remove('active');
+      updateDateNavForPage(page);
+      hideDropdownMenu();
+      hideLongPressMenu();
+      if (page === 'timeline') {
+        timelinePage.classList.remove('hidden');
+        tabTimeline.classList.add('active');
+      } else if (page === 'stats') {
+        statsPage.classList.remove('hidden');
+        tabStats.classList.add('active');
+        updateStatsPage();
+        updateTodayStats();
+        const resultArea = document.getElementById('adviceResultArea');
+        resultArea.classList.remove('visible');
+        resultArea.innerHTML = '';
+      } else if (page === 'plans') {
+        plansPage.classList.remove('hidden');
+        tabPlans.classList.add('active');
+        renderPlans();
+      } else if (page === 'about') {
+        aboutPage.classList.remove('hidden');
+        tabAbout.classList.add('active');
+      }
+    }
+
+    function init() {
+      loadData();
+      updateAllText();
+      currentDateDisplay.innerHTML = formatDateDisplay(currentDate);
+      updateBlockSizeButtons();
+      renderCategorySidebar();
+      renderTimeline();
+      updateTodayStats();
+      renderPlans();
+      updateDateNavForPage('timeline');
+      showGuideIfNeeded();
+
+      const tipDismissed = localStorage.getItem('stats_tip_dismissed');
+      if (tipDismissed === 'true') document.getElementById('statsTip').style.display = 'none';
+      document.getElementById('dismissStatsTip').addEventListener('click', () => {
+        document.getElementById('statsTip').style.display = 'none';
+        localStorage.setItem('stats_tip_dismissed', 'true');
+      });
+
+      document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
+      document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
+      undoBtn.addEventListener('click', (e) => { e.stopPropagation(); undo(); });
+      document.getElementById('langBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleLanguage(); });
+      sidebarToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(); });
+      document.getElementById('menuToggle').addEventListener('click', (e) => { e.stopPropagation(); toggleDropdownMenu(); });
+      document.getElementById('clearTodayBtn').addEventListener('click', clearToday);
+      document.querySelectorAll('.block-size-btn').forEach(btn => btn.addEventListener('click', () => setBlockSize(parseInt(btn.dataset.size))));
+
+      tabTimeline.addEventListener('click', () => showPage('timeline'));
+      tabStats.addEventListener('click', () => showPage('stats'));
+      tabPlans.addEventListener('click', () => showPage('plans'));
+      tabAbout.addEventListener('click', () => showPage('about'));
+
+      addPlanBtn.addEventListener('click', (e) => { e.stopPropagation(); openAddPlanModal(); });
+      document.getElementById('menuEdit').addEventListener('click', () => { if (longPressedCategory) openEditModal(); });
+      document.getElementById('menuDelete').addEventListener('click', () => deleteCategory());
+      document.getElementById('menuCancel').addEventListener('click', hideLongPressMenu);
+
+      document.addEventListener('click', (e) => {
+        if (!longPressMenu.contains(e.target)) hideLongPressMenu();
+        if (!dropdownMenu.contains(e.target) && e.target.id !== 'menuToggle' && !e.target.closest('#menuToggle')) hideDropdownMenu();
+        if (!planModal.contains(e.target) && e.target.id === 'planModal') planModal.classList.add('hidden');
+      });
+      document.addEventListener('mouseup', () => { isSelecting = false; });
+
+      document.getElementById('modalCancel').addEventListener('click', () => editModal.classList.add('hidden'));
+      document.getElementById('modalSave').addEventListener('click', saveCategory);
+      document.getElementById('planModalCancel').addEventListener('click', () => planModal.classList.add('hidden'));
+      document.getElementById('planModalSave').addEventListener('click', savePlan);
+      document.getElementById('planModalDelete').addEventListener('click', () => { if (editingPlanId) { deletePlan(editingPlanId); planModal.classList.add('hidden'); } });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.slot') && !e.target.closest('.cat-item') && !e.target.closest('.timeline-container')) {
+          highlightedSlots.clear();
+          updateHighlight();
+        }
+      });
+
+      document.getElementById('categoryNameInput').addEventListener('input', (e) => {
+        if (e.target.value.length > MAX_NAME_LENGTH) e.target.value = e.target.value.slice(0, MAX_NAME_LENGTH);
+      });
+      document.getElementById('planCycleSelect').addEventListener('change', updatePlanNamePreview);
+      document.getElementById('planCategorySelect').addEventListener('change', updatePlanNamePreview);
+      document.getElementById('planCompareSelect').addEventListener('change', updatePlanNamePreview);
+      document.getElementById('planTargetHours').addEventListener('input', updatePlanNamePreview);
+
+      document.getElementById('connectLink').addEventListener('click', () => copyToClipboard('https://connect.xjtlu.edu.cn/group/ay2526-lif001-b68?login'));
+      document.getElementById('githubLink').addEventListener('click', () => copyToClipboard('https://github.com/Crenva-t/BlockTime'));
+      document.getElementById('generateAdviceBtn').addEventListener('click', () => generateSleepAdvice());
+    }
+
+    init();
+  </script>
+</body>
+</html>
